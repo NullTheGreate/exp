@@ -1,38 +1,36 @@
 use std::{
-    sync::{
-        mpsc::{self, Sender},
-        Arc, Mutex,
-    },
-    thread::{self},
+    sync::{mpsc, Arc, Mutex},
+    thread,
+    time::Duration,
 };
+
 fn main() {
     let counter = Arc::new(Mutex::new(0));
-    let mut handles = vec![];
-
-    // let val: String = String::from("hi");
     let (sender, reciever) = mpsc::channel();
+    let mut spawns = vec![];
 
-    for _ in 0..10 {
+    for _i in 1..10 {
+        let sender = sender.clone();
         let counter = Arc::clone(&counter);
-        let spawn = thread::spawn(move || {
+        let handle = thread::spawn(move || {
             let mut num = counter.lock().unwrap();
+            let _ = sender.send(*num);
             *num += 1;
-            thread_method(*num, sender);
+            func1(*num);
         });
-
-        handles.push(spawn);
+        spawns.push(handle);
     }
 
-    // let _ = spawn.join();
-    for handle in handles {
-        handle.join();
+    for thread in spawns {
+        _ = thread.join();
+        let recieved = reciever.recv().unwrap();
+        println!("recieved {}", recieved);
     }
-
-    let rec = reciever.recv().unwrap();
-    println!("recieved {}", rec);
 }
 
-fn thread_method(val: i32, sender: Sender<i32>) {
-    println!("value {}", val);
-    let _ = sender.send(val);
+fn func1(num: u32) {
+    // num = num + 1;
+    println!("thread {}", num);
+    thread::sleep(Duration::from_millis(1000));
 }
+
